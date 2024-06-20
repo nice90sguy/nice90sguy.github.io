@@ -5,10 +5,15 @@
     <title>Matchem</title>
     <style>
         @keyframes fade-in {
-            from { opacity: 0; }
+            from { opacity: 0.2; }
             to { opacity: 1; }
         }
-
+        @keyframes move-in {
+            from { left: 0; top: 600px; }
+        }
+        @keyframes grow {
+            from { scale: .2; }
+        }
         div {
             -moz-user-select: none;
             -khtml-user-select: none;
@@ -21,26 +26,43 @@
             -ms-user-select: none;
             user-select: none;
         }
-        div#container {
+        div#outer {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
-           /* min-height: 100vh; */
-
+            min-height: 100vh;
+        }
+        div#controls {
+            display: flex;
+            flex-direction: row;
+            background-color: #e3d7b2;
+        }
+        div#container {
+            width: 600px;
+            height:600px;
+            position: relative;
+            background-color: #e3d7b2;
         }
         div#score {
+            margin: 0px;
+            width: 570px;
+            height: 200px;
             display: flex;
             justify-content: center;
             align-items: center;
             text-align: center;
             font-size: 36pt;
+            font-family: monospace;
+
         }
         div.tile {
             background-color: #e3d7b2;
             margin: 2px;
             text-align: center;
             position: absolute;
+            text-shadow: 2px 2px 4px #424242;
         }
 
         div.tile:hover {
@@ -66,9 +88,19 @@
 </head>
 <body>
 
-<div id="score"></div>
-<div id="container"><button onclick="addMorePairs=!addMorePairs">Toggle Timer</button></div>
 
+<audio src="notify.wav"></audio>
+<div id="outer">
+    <div id="container"></div>
+    <div id="controls">
+        <img src="pileOfCards.png" width="30" height="40">
+        <div id="score">
+    </div>
+
+
+    </div>
+    <button onclick="addMorePairs=!addMorePairs">Toggle Timer</button>
+</div>
 </body>
 <script src="emojis.js"></script>
 <script src="index.js"></script>

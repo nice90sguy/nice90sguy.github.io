@@ -27,12 +27,12 @@ const games = [
 let timerHandle = undefined;
 // Hack
 let blockClick = false;
-function makeGame(rows, cols, numPairs) {
+function makeGame(rows, cols, numPairs, pairsPerTimeout = 2, timeoutMs = 3000) {
     const grid_len = rows * cols;
     // create a grid
     const grid = new Array(grid_len).fill(0);
     const i2rc = (i) => [Math.floor(i / rows), i % rows];
-    const lowest_pile_idx = () => {
+    const getGridIndexWithFewestTiles = () => {
         const p = [];
         for (let i = 0; i < grid_len; ++i)
             p.push({ i: i, h: grid[i] });
@@ -50,10 +50,13 @@ function makeGame(rows, cols, numPairs) {
         return lp.shuffle()[0];
     };
     const makeTileAtIndex = (i, isBackGroundTile = false) => {
+        // Images must always be unique
+        if (!isBackGroundTile && emoji_idx > emojis.length - 1)
+            return;
         const sz = 120;
         const fsz = 64;
         const h = grid[i];
-        const v = isBackGroundTile ? "" : allEmojisShuffled[emoji_idx];
+        const v = isBackGroundTile ? "" : emojis[emoji_idx];
         const cellElement = document.createElement('div');
         const [r, c] = i2rc(i);
         ++grid[i];
@@ -66,7 +69,7 @@ function makeGame(rows, cols, numPairs) {
         cellElement.style.width = sz + "px";
         cellElement.style.height = sz + "px";
         cellElement.style.fontSize = fsz + "pt";
-        cellElement.style.animation = "fade-in 1s";
+        cellElement.style.animation = "fade-in .2s, move-in .3s, grow .3s";
         deckElement.appendChild(cellElement);
         cellElement.ontransitionend = () => {
             if (cellElement.classList.contains('rotateOut')) {
@@ -86,14 +89,17 @@ function makeGame(rows, cols, numPairs) {
                 }
                 else if (cellElement.innerText === elToMatch.innerText && cellElement !== elToMatch) {
                     score -= 1;
+                    audioEl.pause();
+                    audioEl.currentTime = 0;
+                    audioEl.play();
                     clearInterval(timerHandle);
                     if (addMorePairs)
                         timerHandle = setInterval(() => {
                             blockClick = true;
-                            for (let np = 0; np < 2; ++np)
+                            for (let np = 0; np < pairsPerTimeout; ++np)
                                 dealPair();
                             blockClick = false;
-                        }, 3 * 1000);
+                        }, timeoutMs);
                     scoreEl.innerHTML = score.toFixed(0);
                     elToMatch.classList.add('rotateOut');
                     cellElement.classList.add('rotateOut');
@@ -106,14 +112,14 @@ function makeGame(rows, cols, numPairs) {
                     elToMatch = undefined;
                 }
             });
-        return cellElement;
+        return;
     };
     const dealPair = () => {
-        const firstTileIdx = lowest_pile_idx();
+        const firstTileIdx = getGridIndexWithFewestTiles();
         let secondTileIndex = 0; // Value is irrelevant, gets set in do loop
         // Add a tile at lowest pile
         makeTileAtIndex(firstTileIdx);
-        // Add a matching tile anywhere except on the same pile as the first tile
+        // Add a matching tile anywhere except on the same grid location as the first tile
         do {
             secondTileIndex = Math.floor(Math.random() * grid_len);
         } while (secondTileIndex === firstTileIdx);
@@ -126,17 +132,26 @@ function makeGame(rows, cols, numPairs) {
         // Make the background
         for (let i = 0; i < grid_len; ++i)
             makeTileAtIndex(i, true);
-        for (let pair = 0; pair < numPairs; ++pair)
-            dealPair();
+        let pair = 0;
+        const to = setInterval(() => {
+            if (pair++ < numPairs)
+                dealPair();
+            else
+                clearInterval(to);
+        }, 100);
+        // for (let pair = 0; pair < numPairs; ++pair)
+        //     dealPair();
     };
     // @ts-ignore
-    const allEmojisShuffled = allEmojis.shuffle();
+    // const emojis = allEmojis.slice(0,100).shuffle()
+    const emojis = allEmojis.shuffle();
     let emoji_idx = 0;
     let score = 0;
     const layers = [];
     let elToMatch = undefined;
     const scoreEl = document.querySelector('#score');
     const containerEl = document.querySelector('#container');
+    const audioEl = document.querySelector('audio');
     // Make deck
     scoreEl.innerHTML = score.toFixed(0);
     const deckElement = document.createElement('div');
@@ -144,5 +159,5 @@ function makeGame(rows, cols, numPairs) {
     containerEl.appendChild(deckElement);
     deal();
 }
-makeGame(5, 5, 50);
+makeGame(5, 5, 50, 3, 3000);
 //# sourceMappingURL=index.js.map
