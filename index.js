@@ -162,5 +162,5 @@ function makeGame(rows, cols, numPairs, pairsPerTimeout = 2, timeoutMs = 3000) {
     containerEl.appendChild(deckElement);
     deal();
 }
-makeGame(5, 5, 50, 3, 3000);
+makeGame(5, 5, 50, 3, 3500);
 //# sourceMappingURL=index.js.map

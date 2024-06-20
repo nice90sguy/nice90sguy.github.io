@@ -194,7 +194,7 @@ function makeGame(rows: number, cols: number, numPairs: number, pairsPerTimeout 
 
 }
 
-makeGame(5, 5, 50, 3, 3000);
+makeGame(5, 5, 50, 3, 3500);
 
 
 
