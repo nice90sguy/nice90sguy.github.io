@@ -49,21 +49,24 @@ function makeGame(rows, cols, numPairs, pairsPerTimeout = 2, timeoutMs = 3000) {
         // @ts-ignore
         return lp.shuffle()[0];
     };
-    const makeTileAtIndex = (i, isBackGroundTile = false) => {
+    const makeTileAtIndex = (i) => {
         // Images must always be unique
-        if (!isBackGroundTile && emoji_idx > emojis.length - 1)
+        if (emoji_idx > emojis.length - 1)
             return;
         const sz = 120;
         const fsz = 64;
         const h = grid[i];
-        const v = isBackGroundTile ? "" : emojis[emoji_idx];
+        const v = emojis[emoji_idx];
+        // https://stackoverflow.com/questions/48419167/how-to-convert-one-emoji-character-to-unicode-codepoint-number-in-javascript
+        // @ts-ignore
+        console.log([...v].map(e => e.codePointAt(0).toString(16)).join(`-`)); // gives correctly 1f469-200d-2695-fe0
         const cellElement = document.createElement('div');
         const [r, c] = i2rc(i);
         ++grid[i];
         cellElement.classList.add('tile');
         cellElement.style.zIndex = `${1000 + h}`;
         cellElement.id = `${i2rc(i)}-${h}`;
-        cellElement.innerText = v;
+        cellElement.innerHTML = `<img src="imgs/${v}.png" width=${sz} height=${sz}>`;
         cellElement.style.left = c * sz + "px";
         cellElement.style.top = r * sz + "px";
         cellElement.style.width = sz + "px";
@@ -79,39 +82,38 @@ function makeGame(rows, cols, numPairs, pairsPerTimeout = 2, timeoutMs = 3000) {
             else
                 cellElement.classList.remove("rotateBack");
         };
-        if (!isBackGroundTile)
-            cellElement.addEventListener('click', () => {
-                if (blockClick)
-                    return;
-                if (elToMatch === undefined) {
-                    cellElement.classList.add("selected");
-                    elToMatch = cellElement;
-                }
-                else if (cellElement.innerText === elToMatch.innerText && cellElement !== elToMatch) {
-                    score -= 1;
-                    audioEl.pause();
-                    audioEl.currentTime = 0;
-                    audioEl.play();
-                    clearInterval(timerHandle);
-                    if (addMorePairs)
-                        timerHandle = setInterval(() => {
-                            blockClick = true;
-                            for (let np = 0; np < pairsPerTimeout; ++np)
-                                dealPair();
-                            blockClick = false;
-                        }, timeoutMs);
-                    scoreEl.innerHTML = score.toFixed(0);
-                    elToMatch.classList.add('rotateOut');
-                    cellElement.classList.add('rotateOut');
-                    elToMatch = undefined;
-                }
-                else {
-                    cellElement.classList.add("rotateBack");
-                    elToMatch.classList.add("rotateBack");
-                    elToMatch.classList.remove("selected");
-                    elToMatch = undefined;
-                }
-            });
+        cellElement.addEventListener('click', () => {
+            if (blockClick)
+                return;
+            if (elToMatch === undefined) {
+                cellElement.classList.add("selected");
+                elToMatch = cellElement;
+            }
+            else if ((cellElement.firstElementChild).src === (elToMatch.firstElementChild).src && cellElement !== elToMatch) {
+                score -= 1;
+                audioEl.pause();
+                audioEl.currentTime = 0;
+                audioEl.play();
+                clearInterval(timerHandle);
+                if (addMorePairs)
+                    timerHandle = setInterval(() => {
+                        blockClick = true;
+                        for (let np = 0; np < pairsPerTimeout; ++np)
+                            dealPair();
+                        blockClick = false;
+                    }, timeoutMs);
+                scoreEl.innerHTML = score.toFixed(0);
+                elToMatch.classList.add('rotateOut');
+                cellElement.classList.add('rotateOut');
+                elToMatch = undefined;
+            }
+            else {
+                cellElement.classList.add("rotateBack");
+                elToMatch.classList.add("rotateBack");
+                elToMatch.classList.remove("selected");
+                elToMatch = undefined;
+            }
+        });
         return;
     };
     const dealPair = () => {
@@ -130,8 +132,8 @@ function makeGame(rows, cols, numPairs, pairsPerTimeout = 2, timeoutMs = 3000) {
     };
     const deal = () => {
         // Make the background
-        for (let i = 0; i < grid_len; ++i)
-            makeTileAtIndex(i, true);
+        // for (let i = 0; i < grid_len; ++i)
+        //     makeTileAtIndex(i, true);
         let pair = 0;
         const to = setInterval(() => {
             if (pair++ < numPairs)
@@ -144,7 +146,8 @@ function makeGame(rows, cols, numPairs, pairsPerTimeout = 2, timeoutMs = 3000) {
     };
     // @ts-ignore
     // const emojis = allEmojis.slice(0,100).shuffle()
-    const emojis = allEmojis.shuffle();
+    // const emojis = allEmojis.shuffle()
+    const emojis = emojiImgs.shuffle();
     let emoji_idx = 0;
     let score = 0;
     const layers = [];
