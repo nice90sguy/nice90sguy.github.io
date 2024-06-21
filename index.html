@@ -35,9 +35,17 @@
             min-height: 100vh;
         }
         div#controls {
-            display: flex;
-            flex-direction: row;
+            justify-content: normal;
+            display: grid;
+            grid-template-columns: 50px 1fr 50px;
+
+            margin-top: 10px;
+            width: 600px;
+            height: 200px;
+            grid-template-areas:
+                "score hist opts";
             background-color: #e3d7b2;
+            font-size: 20px;
         }
         div#container {
             width: 600px;
@@ -46,16 +54,42 @@
             background-color: #e3d7b2;
         }
         div#score {
-            margin: 0px;
-            width: 570px;
-            height: 200px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            font-size: 36pt;
+            grid-area: score;
             font-family: monospace;
+        }
+        div#hist {
+            grid-area: hist;
+            font-family: monospace;
+        }
 
+        div.chart {
+            display: grid;
+            grid-template-columns: repeat(60, 5px);
+            grid-auto-columns: minmax(5px, 5px);
+            grid-template-rows: 1fr 30px;
+
+        }
+
+        div.bar {
+
+            background-color: #5b5112;
+        }
+        div.x-label {
+            display: inline-block;
+            width: 20px;
+            margin: 2px;
+            font-size: 10px;
+        }
+
+        div.histogram {
+            background-color: #beb297;
+            grid-area: hist;
+            height: 100px;
+            font-family: monospace;
+        }
+        div#opts {
+            grid-area: opts;
+            font-family: monospace;
         }
         div.tile {
             background-color: #e3d7b2;
@@ -93,12 +127,17 @@
 <div id="outer">
     <div id="container"></div>
     <div id="controls">
-        <img src="pileOfCards.png" width="30" height="40">
-        <div id="score">
+
+        <div id="hist">
+            <div class="mean-reaction-time">(mean reaction time)</div>
+            <div class="histogram">(HISTOGRAM)</div>
+
+        </div>
+        <div id="score"></div>
+<!--        <div>😀<img src="imgs/1f600.png" height=64"></div>-->
     </div>
 
 
-    </div>
     <button onclick="addMorePairs=!addMorePairs">Toggle Timer</button>
 </div>
 </body>
