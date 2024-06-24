@@ -413,14 +413,18 @@ async function game(instructions: string, set: string[], rows: number, cols: num
 const set = emojiImgs;
 
 (async () => {
-
+// 5 X 5 grid, 50 pairs, 5 seconds before hint
     await game("Match all 50 pairs.", set, 5, 5, 50, 2, 0, 5_000);
+// 5 X 5 grid, 100 pairs, 5 seconds  before new two new pairs of tiles are added
     await game("Match pairs. Be quick, or new ones will appear!", set, 5, 5, 100, 2, 2, 5_000);
-    await game("Match sets of three. ", set, 7, 7, 100, 3, 0, 30_000);
-
+// 7 X 7 grid, 100 sets of three, 30 seconds  before hint
+    await game("Match sets of three.", set, 7, 7, 100, 3, 0, 30_000);
+// 7 X 7 grid, 49 sets of three, 20 seconds  before three new sets of tiles are  added
     await game("Match sets of three. Don't take too long finding them!", set, 7, 7, 49, 3, 3, 20_000);
+// 9 X 9 grid, 81 sets of three, 30 seconds  before hint
     await game("Match sets of three!", set, 9, 9, 81, 3, 0, 30_000);
-    await game("No way you can finish this level.", set, 9, 9, 81, 3, 0, 30_000);
+// 9 X 9 grid, 81 sets of three, 30 seconds  before  three new sets of tiles are added
+    await game("No way you can finish this level.", set, 9, 9, 81, 3, 3, 30_000);
 })();
 
 
