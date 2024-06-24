@@ -4,12 +4,26 @@
     <meta charset="UTF-8">
     <title>Matchem</title>
     <style>
+        :root {
+            /*  Globally used vars */
+            --backgound-edge-color: #5b6d7a;
+            --background-middle-color: #ffffff;
+            --background-color: #ccbdae;
+
+
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            16% { opacity: .5; }
+            32% { opacity: 1; }
+            48% { opacity: .5; }
+            64% { opacity: 1; }
+            80% { opacity: .5; }
+            96% { opacity: 1; }
+        }
         @keyframes fade-in {
             from { opacity: 0.2; }
             to { opacity: 1; }
-        }
-        @keyframes move-in {
-            from { left: 0; top: 600px; }
         }
         @keyframes grow {
             from { scale: .2; }
@@ -26,40 +40,64 @@
             -ms-user-select: none;
             user-select: none;
         }
+
+        div.tile img  {
+            filter: drop-shadow(2px 2px 4px #424242);
+            width: 100%;
+            object-fit: contain;
+        }
         div#outer {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
-            min-height: 100vh;
+
         }
         div#controls {
+            font-family: moody-adolescent-regular;
             justify-content: normal;
-            display: grid;
+            display: block;
             grid-template-columns: 50px 1fr 50px;
 
-            margin-top: 10px;
-            width: 600px;
-            height: 200px;
+            margin-top: 50px;
+            padding-top: 10px;
+            width: 100%;
+
+            height: 150px;
             grid-template-areas:
-                "score hist opts";
-            background-color: #e3d7b2;
-            font-size: 20px;
+                "tiles-remaining hist opts";
+
+            font-size: 48pt;
+        }
+        @font-face {
+            font-family: "moody-adolescent-regular";
+            src: url("fonts/MoodyadolescentRegular-jE00v.otf") format("opentype");
+        }
+        .deck {
+            width: 100vmin;
+            height: 100vmin;
+
+            aspect-ratio: 1/1;
+            position: relative;
+            background-color: var(--background-color);
+            max-width: 100vmin;
+            max-height: 100vmin;
+            display: grid;
+            aspect-ratio: 1 / 1;
+            container-type: inline-size;
         }
         div#container {
-            width: 600px;
-            height:600px;
-            position: relative;
-            background-color: #e3d7b2;
+
         }
-        div#score {
-            grid-area: score;
-            font-family: monospace;
+        div#tiles-remaining {
+            grid-area: tiles-remaining;
+
         }
         div#hist {
+            display: none;
             grid-area: hist;
-            font-family: monospace;
+
         }
 
         div.chart {
@@ -82,7 +120,7 @@
         }
 
         div.histogram {
-            background-color: #beb297;
+            background-color: var(--background-color);
             grid-area: hist;
             height: 100px;
             font-family: monospace;
@@ -92,11 +130,10 @@
             font-family: monospace;
         }
         div.tile {
-            background-color: #e3d7b2;
-            margin: 2px;
             text-align: center;
-            position: absolute;
             text-shadow: 2px 2px 4px #424242;
+            background-color: var(--background-color);
+
         }
 
         div.tile:hover {
@@ -104,6 +141,11 @@
             cursor: grabbing;
 
         }
+        div.rotateOut {
+            transform: rotateY(90deg);
+            transition-duration: 0.1s;
+        }
+
         div.rotateOut {
             transform: rotateY(90deg);
             transition-duration: 0.5s;
@@ -125,7 +167,7 @@
 
 <audio src="notify.wav"></audio>
 <div id="outer">
-    <div id="container"></div>
+    <div class="deck"></div>
     <div id="controls">
 
         <div id="hist">
@@ -133,12 +175,14 @@
             <div class="histogram">(HISTOGRAM)</div>
 
         </div>
-        <div id="score"></div>
+
+        <div id="tiles-remaining"></div>
+        <div id="instructions"></div>
 <!--        <div>😀<img src="imgs/1f600.png" height=64"></div>-->
     </div>
 
 
-    <button onclick="addMorePairs=!addMorePairs">Toggle Timer</button>
+<!--    <button onclick="addMorePairs=!addMorePairs">Toggle Timer</button>-->
 </div>
 </body>
 <script src="emojis.js"></script>

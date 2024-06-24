@@ -17,17 +17,20 @@ Object.defineProperty(Array.prototype, 'shuffle', {
         return this;
     }
 });
-let addMorePairs = true;
+Object.defineProperty(Array.prototype, 'partition', {
+    value: function (filter) {
+        const partitions = {};
+        let index = 0;
+        for (const item of this) {
+            const k = filter(item, index++, this);
+            if (partitions[k] === undefined)
+                partitions[k] = [];
+            partitions[k].push(item);
+        }
+        return partitions;
+    }
+});
 const gameNum = 0;
-const games = [
-    { r: 4, c: 4, l: 2 },
-    { r: 6, c: 6, l: 5 },
-    { r: 10, c: 10, l: 10 }
-];
-let timerHandle = undefined;
-// Hack
-let blockClick = false;
-const reactionTimes = [];
 function histogram(data, nBins, binWidth) {
     const hist = new Array(nBins).fill(0); // @ts-ignore
     for (const v of data) {
@@ -82,171 +85,250 @@ function plotHistogram(containerEl, data) {
     //     xLabels.appendChild(label);
     // }
 }
-function makeGame(rows, cols, numPairs, pairSize = 2, pairsPerTimeout = 2, timeoutMs = 3000) {
-    const grid_len = rows * cols;
-    // create a grid
-    const grid = new Array(grid_len).fill(0);
+async function game(instructions, set, rows, cols, numInitialSets, setSize, setsToAddPerTimeout, timeoutMs = 3000) {
+    const timeoutActionType = setsToAddPerTimeout === 0 ? "hint" : setsToAddPerTimeout > 0 ? "add" : "remove";
+    let addMoreSets = true;
+    let setsRemaining = 0;
+    let timerHandle = undefined;
     let lastMatchTime = 0;
-    let numMatches = 0;
-    let matchingCells = [];
-    const i2rc = (i) => [Math.floor(i / rows), i % rows];
-    const getGridIndexWithFewestTiles = () => {
-        const p = [];
-        for (let i = 0; i < grid_len; ++i)
-            p.push({ i: i, h: grid[i] });
-        p.sort((a, b) => a.h - b.h);
-        let h = p[0].h;
-        const lp = [];
-        lp.push(p[0].i);
-        for (let j = 1; j < grid_len; ++j)
-            if (p[j].h > h)
-                break;
-            else {
-                lp.push(p[j].i);
-            }
-        // @ts-ignore
-        return lp.shuffle()[0];
-    };
-    const makeTileAtIndex = (i) => {
-        // Images must always be unique
-        if (emoji_idx > emojis.length - 1)
-            return;
-        const sz = Math.floor(600 / cols);
-        const fsz = Math.floor(sz / 2);
-        const h = grid[i];
-        const v = emojis[emoji_idx];
-        const comparator = set === emojiImgs ?
-            (a, b) => (a.firstElementChild).src === (b.firstElementChild).src
-            : (a, b) => a.innerText === b.innerText;
-        // https://stackoverflow.com/questions/48419167/how-to-convert-one-emoji-character-to-unicode-codepoint-number-in-javascript
-        // @ts-ignore
-        console.log([...v].map(e => e.codePointAt(0).toString(16)).join(`-`)); // gives correctly 1f469-200d-2695-fe0
-        const cellElement = document.createElement('div');
-        const [r, c] = i2rc(i);
-        ++grid[i];
-        cellElement.classList.add('tile');
-        cellElement.style.zIndex = `${1000 + h}`;
-        cellElement.id = `${i2rc(i)}-${h}`;
-        if (set === emojiImgs)
-            cellElement.innerHTML = `<img src="imgs/${v}.png" width=${sz} height=${sz}>`;
-        else
-            cellElement.innerText = v;
-        cellElement.style.left = c * sz + "px";
-        cellElement.style.top = r * sz + "px";
-        cellElement.style.width = sz + "px";
-        cellElement.style.height = sz + "px";
-        cellElement.style.fontSize = fsz + "pt";
-        cellElement.style.animation = "fade-in .2s, move-in .3s, grow .3s";
-        deckElement.appendChild(cellElement);
-        cellElement.ontransitionend = () => {
-            if (cellElement.classList.contains('rotateOut')) {
-                cellElement.remove();
-                --grid[i];
-            }
-            else
-                cellElement.classList.remove("rotateBack");
+    // Hack
+    let lock = false;
+    let numTilesDealt = 0;
+    const reactionTimes = [];
+    return new Promise((resolve, reject) => {
+        document.querySelector('#instructions').innerHTML = instructions;
+        addMoreSets = timeoutMs > 0;
+        const grid_len = rows * cols;
+        // create a grid
+        const grid = new Array(grid_len).fill(0);
+        let numMatches = 0;
+        let matchingCells = [];
+        const i2rc = (i) => [Math.floor(i / rows), i % rows];
+        const getGridIndexWithFewestTiles = () => {
+            const p = [];
+            for (let i = 0; i < grid_len; ++i)
+                p.push({ i: i, h: grid[i] });
+            p.sort((a, b) => a.h - b.h);
+            let h = p[0].h;
+            const lp = [];
+            lp.push(p[0].i);
+            for (let j = 1; j < grid_len; ++j)
+                if (p[j].h > h)
+                    break;
+                else {
+                    lp.push(p[j].i);
+                }
+            // @ts-ignore
+            return lp.shuffle()[0];
         };
-        cellElement.addEventListener('click', () => {
-            if (blockClick)
-                return;
-            if (matchingCells.length == 0) {
-                cellElement.classList.add("selected");
-                matchingCells.push(cellElement);
+        const topTiles = () => {
+            const tiles = new Array(grid_len).fill(undefined);
+            for (const el of document.querySelectorAll('.tile')) {
+                const [locS, zIndexS] = el.id.split('-');
+                const loc = parseInt(locS);
+                const zIndex = parseInt(zIndexS);
+                if (tiles[loc] === undefined || zIndex > parseInt(tiles[loc].id.split('-')[1]))
+                    tiles[loc] = el;
             }
-            else if (!matchingCells.includes(cellElement) && comparator(cellElement, matchingCells[0])) {
-                matchingCells.push(cellElement);
-                cellElement.classList.add("selected");
-                if (++numMatches == pairSize - 1) {
-                    if (lastMatchTime != 0) {
-                        const elapsed = Date.now() - lastMatchTime;
-                        reactionTimes.push(elapsed);
-                        if (reactionTimes.length > 0) {
-                            document.querySelector('.mean-reaction-time').innerText = `Mean reaction time: ${(reactionTimes.reduce((a, b) => a + b) / reactionTimes.length / 1000).toFixed(1)}`;
-                            plotHistogram(document.querySelector('.histogram'), reactionTimes);
+            return tiles;
+        };
+        const findAVisibleSet = () => {
+            const tiles = topTiles();
+            const visibleTiles = tiles.filter(t => t !== undefined && !t.classList.contains('rotateOut'));
+            // @ts-ignore
+            const partitions = visibleTiles.partition((t) => set !== emojiImgs ? t.innerText : t.firstElementChild.src);
+            for (const key in partitions)
+                if (partitions[key].length >= setSize)
+                    return partitions[key];
+            return [];
+        };
+        const makeTileAtIndex = (i) => {
+            // Images must always be unique
+            if (emoji_idx > emojis.length - 1)
+                return;
+            const sz = Math.floor(deckEl.clientWidth / cols);
+            const relSize = Math.floor(100 / cols);
+            const fsz = Math.floor(sz / 2);
+            const h = grid[i];
+            const v = emojis[emoji_idx];
+            const comparator = set === emojiImgs ?
+                (a, b) => (a.firstElementChild).src === (b.firstElementChild).src
+                : (a, b) => a.innerText === b.innerText;
+            // https://stackoverflow.com/questions/48419167/how-to-convert-one-emoji-character-to-unicode-codepoint-number-in-javascript
+            // @ts-ignore
+            console.log([...v].map(e => e.codePointAt(0).toString(16)).join(`-`)); // gives correctly 1f469-200d-2695-fe0
+            const tileEl = document.createElement('div');
+            const [r, c] = i2rc(i);
+            ++grid[i];
+            const zIndex = 1000 + numTilesDealt++;
+            tileEl.classList.add('tile');
+            tileEl.style.zIndex = `${zIndex}`;
+            tileEl.id = `${i}-${zIndex - 1000}`;
+            if (set === emojiImgs)
+                tileEl.innerHTML = `<img src="imgs/${v}.png">`;
+            else
+                tileEl.innerText = v;
+            tileEl.style.gridRow = `${r + 1}`;
+            tileEl.style.gridColumn = `${c + 1}`;
+            tileEl.style.animation = "fade-in .2s, grow .5s";
+            deckEl.appendChild(tileEl);
+            tileEl.ontransitionend = () => {
+                if (tileEl.classList.contains('rotateOut'))
+                    tileEl.remove();
+                else
+                    tileEl.classList.remove("rotateBack");
+            };
+            tileEl.ontransitionstart = () => {
+                if (tileEl.classList.contains('rotateOut'))
+                    --grid[i];
+            };
+            const touched = (e) => {
+                e.preventDefault();
+                if (lock)
+                    return;
+                lock = true;
+                if (matchingCells.length == 0) {
+                    tileEl.classList.add("selected");
+                    matchingCells.push(tileEl);
+                }
+                else if (!matchingCells.includes(tileEl) && comparator(tileEl, matchingCells[0])) {
+                    matchingCells.push(tileEl);
+                    tileEl.classList.add("selected");
+                    if (++numMatches == setSize - 1) {
+                        if (lastMatchTime != 0) {
+                            const elapsed = Date.now() - lastMatchTime;
+                            reactionTimes.push(elapsed);
+                            if (reactionTimes.length > 0) {
+                                document.querySelector('.mean-reaction-time').innerText = `Mean reaction time: ${(reactionTimes.reduce((a, b) => a + b) / reactionTimes.length / 1000).toFixed(1)}`;
+                                plotHistogram(document.querySelector('.histogram'), reactionTimes);
+                            }
+                        }
+                        lastMatchTime = Date.now();
+                        numMatches = 0;
+                        setsRemaining -= 1;
+                        audioEl.pause();
+                        audioEl.currentTime = 0;
+                        audioEl.play();
+                        setsRemainingEl.innerHTML = setsRemaining.toFixed(0);
+                        for (const cell of matchingCells)
+                            cell.classList.add('rotateOut');
+                        matchingCells = [];
+                        // Start timer if not already started
+                        if (timerHandle === undefined && addMoreSets)
+                            timerHandle = setTimeout(delayedDeal, timeoutMs);
+                        if (setsRemaining === 0) {
+                            addMoreSets = false;
+                            clearTimeout(timerHandle);
+                            // Game over
+                            resolve();
                         }
                     }
-                    lastMatchTime = Date.now();
-                    numMatches = 0;
-                    score -= 1;
-                    audioEl.pause();
-                    audioEl.currentTime = 0;
-                    audioEl.play();
-                    clearInterval(timerHandle);
-                    if (addMorePairs)
-                        timerHandle = setInterval(() => {
-                            blockClick = true;
-                            for (let np = 0; np < pairsPerTimeout; ++np)
-                                dealPair(pairSize);
-                            blockClick = false;
-                        }, timeoutMs);
-                    scoreEl.innerHTML = score.toFixed(0);
-                    for (const cell of matchingCells)
-                        cell.classList.add('rotateOut');
+                }
+                else {
+                    for (const cell of matchingCells) {
+                        cell.classList.remove("selected");
+                        cell.classList.add('rotateBack');
+                    }
                     matchingCells = [];
+                    numMatches = 0;
+                    tileEl.classList.add("rotateBack");
+                }
+                lock = false;
+            };
+            tileEl.addEventListener('mousedown', touched);
+            tileEl.addEventListener('touchstart', touched);
+            return;
+        };
+        const dealSet = (n) => {
+            const tileIndices = []; // Value is irrelevant, gets set in do loop
+            // Add a tile at lowest pile
+            tileIndices.push(getGridIndexWithFewestTiles());
+            let tempIndex = 0; // Value is irrelevant, gets set in do loop
+            for (let i = 0; i < n - 1; ++i) {
+                // Add a matching tile anywhere except on the same grid location as any of the other tiles
+                do {
+                    tempIndex = Math.floor(Math.random() * grid_len);
+                } while (tileIndices.includes(tempIndex));
+                tileIndices.push(tempIndex);
+            }
+            for (const gridIndex of tileIndices)
+                makeTileAtIndex(gridIndex);
+            ++emoji_idx;
+            ++setsRemaining;
+            setsRemainingEl.innerHTML = setsRemaining.toFixed(0);
+            return tileIndices;
+        };
+        const delayedDeal = () => {
+            // will re-trigger continuously until addMoreSets is false
+            // or a match has occurred less than timeoutMs ago
+            if (Date.now() - lastMatchTime > timeoutMs) {
+                if (timeoutActionType === "hint") {
+                    const s = findAVisibleSet();
+                    if (s.length && matchingCells.length === 0)
+                        for (const cell of s)
+                            cell.classList.add('rotateBack');
+                }
+                else if (timeoutActionType === "add") {
+                    for (let np = 0; np < setsToAddPerTimeout; ++np)
+                        dealSet(setSize);
+                }
+                else {
+                    // Remove a set
+                    const s = findAVisibleSet();
+                    for (const cell of s) {
+                        cell.classList.add('rotateOut');
+                    }
+                    --setsRemaining;
+                    setsRemainingEl.innerHTML = setsRemaining.toFixed(0);
+                    if (setsRemaining === 0) {
+                        addMoreSets = false;
+                        clearTimeout(timerHandle);
+                        // Game over
+                        resolve();
+                    }
                 }
             }
-            else {
-                for (const cell of matchingCells) {
-                    cell.classList.remove("selected");
-                    cell.classList.add('rotateBack');
-                }
-                matchingCells = [];
-                numMatches = 0;
-                cellElement.classList.add("rotateBack");
-            }
-        });
-        return;
-    };
-    const dealPair = (n) => {
-        const tileIndices = []; // Value is irrelevant, gets set in do loop
-        // Add a tile at lowest pile
-        tileIndices.push(getGridIndexWithFewestTiles());
-        let tempIndex = 0; // Value is irrelevant, gets set in do loop
-        for (let i = 0; i < n - 1; ++i) {
-            // Add a matching tile anywhere except on the same grid location as the first tile
-            do {
-                tempIndex = Math.floor(Math.random() * grid_len);
-            } while (tileIndices.includes(tempIndex));
-            tileIndices.push(tempIndex);
-        }
-        for (const gridIndex of tileIndices)
-            makeTileAtIndex(gridIndex);
-        ++emoji_idx;
-        ++score;
-        scoreEl.innerHTML = score.toFixed(0);
-    };
-    const deal = () => {
-        // Make the background
-        // for (let i = 0; i < grid_len; ++i)
-        //     makeTileAtIndex(i, true);
-        let pair = 0;
-        const to = setInterval(() => {
-            if (pair++ < numPairs)
-                dealPair(pairSize);
-            else
-                clearInterval(to);
-        }, 100);
-        // for (let pair = 0; pair < numPairs; ++pair)
-        //     dealPair();
-    };
-    // const set = allEmojis
-    const set = emojiImgs;
-    // @ts-ignore
-    // const emojis = set.slice(0,100).shuffle()
-    const emojis = set.shuffle();
-    let emoji_idx = 0;
-    let score = 0;
-    const layers = [];
-    // let elToMatch: HTMLDivElement | undefined = undefined
-    const scoreEl = document.querySelector('#score');
-    const containerEl = document.querySelector('#container');
-    const audioEl = document.querySelector('audio');
-    // Make deck
-    scoreEl.innerHTML = score.toFixed(0);
-    const deckElement = document.createElement('div');
-    deckElement.className = 'deck';
-    containerEl.appendChild(deckElement);
-    deal();
+            if (addMoreSets)
+                timerHandle = setTimeout(delayedDeal, timeoutMs);
+        };
+        const deal = () => {
+            // Make the background
+            // for (let i = 0; i < grid_len; ++i)
+            //     makeTileAtIndex(i, true);
+            let setNum = 0;
+            const to = setInterval(() => {
+                if (setNum++ < numInitialSets)
+                    dealSet(setSize);
+                else
+                    clearInterval(to);
+            }, 50);
+            // for (let setNum = 0; set < numInitialSets; ++set)
+            //     dealSet();
+        };
+        // @ts-ignore
+        // const emojis = set.slice(0,100).shuffle()
+        const emojis = set.shuffle();
+        let emoji_idx = 0;
+        const layers = [];
+        // let elToMatch: HTMLDivElement | undefined = undefined
+        const setsRemainingEl = document.querySelector('#tiles-remaining');
+        const deckEl = document.querySelector('.deck');
+        const audioEl = document.querySelector('audio');
+        // Make deck
+        deckEl.innerHTML = "";
+        deckEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        deckEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+        deal();
+    });
 }
-makeGame(8, 8, 100, 3, 3, 350000);
+// const set = allEmojis
+const set = emojiImgs;
+(async () => {
+    await game("Match all 50 pairs.", set, 5, 5, 50, 2, 0, 5_000);
+    await game("Match pairs. Be quick, or new ones will appear!", set, 5, 5, 100, 2, 2, 5_000);
+    await game("Match sets of three. ", set, 7, 7, 100, 3, 0, 30_000);
+    await game("Match sets of three. Don't take too long finding them!", set, 7, 7, 49, 3, 3, 20_000);
+    await game("Match sets of three!", set, 9, 9, 81, 3, 0, 30_000);
+    await game("No way you can finish this level.", set, 9, 9, 81, 3, 0, 30_000);
+})();
 //# sourceMappingURL=index.js.map
