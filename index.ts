@@ -196,10 +196,6 @@ async function game(instructions: string, set: string[], rows: number, cols: num
             if (emoji_idx > emojis.length-1)
                 return;
 
-            const sz = Math.floor(deckEl.clientWidth / cols);
-            const relSize = Math.floor(100 / cols);
-            const fsz = Math.floor(sz / 2);
-            const h = grid[i]
             const v: string = emojis[emoji_idx];
 
             const comparator = set === emojiImgs  ?

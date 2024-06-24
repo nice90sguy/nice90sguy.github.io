@@ -146,10 +146,6 @@ async function game(instructions, set, rows, cols, numInitialSets, setSize, sets
             // Images must always be unique
             if (emoji_idx > emojis.length - 1)
                 return;
-            const sz = Math.floor(deckEl.clientWidth / cols);
-            const relSize = Math.floor(100 / cols);
-            const fsz = Math.floor(sz / 2);
-            const h = grid[i];
             const v = emojis[emoji_idx];
             const comparator = set === emojiImgs ?
                 (a, b) => (a.firstElementChild).src === (b.firstElementChild).src
