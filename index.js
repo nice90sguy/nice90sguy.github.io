@@ -87,6 +87,20 @@ async function game(instructions, set, cols, rows, numInitialSets, setSize, time
                     return partitions[key];
             return [];
         };
+        const makeDummyTileAtIndex = (i) => {
+            const v = "😀"; // Dummy tile, just for testing
+            const dummyTileEl = document.createElement('div');
+            const [r, c] = i2rc(i);
+            dummyTileEl.className = 'dummy-tile';
+            dummyTileEl.style.zIndex = -1000 + '';
+            dummyTileEl.id = `${i}-dummy`;
+            dummyTileEl.innerText = v;
+            dummyTileEl.style.gridRow = `${r + 1}`;
+            dummyTileEl.style.gridColumn = `${c + 1}`;
+            dummyTileEl.style.margin = '5px';
+            deckEl.appendChild(dummyTileEl);
+            return dummyTileEl;
+        };
         const makeTileAtIndex = (i) => {
             // Images must always be unique
             if (emoji_idx > emojis.length - 1)
@@ -240,7 +254,7 @@ async function game(instructions, set, cols, rows, numInitialSets, setSize, time
             //     dealSet();
         };
         const resetTimerBar = () => {
-            const onBarEnd = (e) => {
+            const onBarEnd = () => {
                 timeoutAction();
                 fill.removeEventListener('animationend', onBarEnd);
             };
@@ -272,6 +286,10 @@ async function game(instructions, set, cols, rows, numInitialSets, setSize, time
         deckEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
         deckEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
         deckEl.style.aspectRatio = `${cols} / ${rows}`; // Set aspect ratio of deck
+        // fill with dummy tiles
+        for (let i = 0; i < grid_len; ++i) {
+            makeDummyTileAtIndex(i);
+        }
         deal();
     });
 }

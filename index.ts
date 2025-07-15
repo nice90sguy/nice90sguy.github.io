@@ -129,6 +129,22 @@ async function game(instructions: string, set: string[], cols: number, rows: num
                     return partitions[key]
             return []
         }
+        const makeDummyTileAtIndex = (i: number): HTMLDivElement => {
+            const v: string = "😀"; // Dummy tile, just for testing
+            const dummyTileEl = document.createElement('div');
+            const [r, c] = i2rc(i)
+
+
+            dummyTileEl.className ='dummy-tile'
+            dummyTileEl.style.zIndex = -1000 + '';
+            dummyTileEl.id = `${i}-dummy`;
+            dummyTileEl.innerText = v;
+            dummyTileEl.style.gridRow = `${r + 1}`
+            dummyTileEl.style.gridColumn = `${c + 1}`
+            dummyTileEl.style.margin = '5px'
+            deckEl.appendChild(dummyTileEl);
+            return dummyTileEl;
+        }
         const makeTileAtIndex = (i: number): void => {
 
             // Images must always be unique
@@ -307,7 +323,7 @@ async function game(instructions: string, set: string[], cols: number, rows: num
 
         }
         const resetTimerBar = () => {
-            const onBarEnd = (e: AnimationEvent) => {
+            const onBarEnd = () => {
                 timeoutAction();
                 fill.removeEventListener('animationend', onBarEnd);
             }
@@ -345,7 +361,10 @@ async function game(instructions: string, set: string[], cols: number, rows: num
         deckEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
         deckEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
         deckEl.style.aspectRatio = `${cols} / ${rows}`; // Set aspect ratio of deck
-
+        // fill with dummy tiles
+        for (let i = 0; i < grid_len; ++i) {
+            makeDummyTileAtIndex(i);
+        }
         deal();
 
 
