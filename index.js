@@ -223,6 +223,9 @@ async function game(instructions, set, rows, cols, numInitialSets, setSize, time
         const deal = () => {
             setTimerBarTransitionTime(864_000_000); // 1 day, so it doesn't animate
             resetTimerBar();
+            // remove any tiles that were hinted at in a previous game
+            document.querySelectorAll('.tile.hint')
+                .forEach(el => el.classList.remove('hint'));
             let setNum = 0;
             const to = setInterval(() => {
                 if (setNum++ < numInitialSets)
@@ -237,17 +240,20 @@ async function game(instructions, set, rows, cols, numInitialSets, setSize, time
             //     dealSet();
         };
         const resetTimerBar = () => {
+            const onBarEnd = (e) => {
+                timeoutAction();
+                fill.removeEventListener('animationend', onBarEnd);
+            };
             if (timeoutMs <= 0)
                 return;
             const fill = document.querySelector('.timer-fill');
-            if (!fill)
-                return;
+            fill.removeEventListener('animationend', onBarEnd);
             fill.style.animation = '';
             void fill.offsetWidth;
             fill.classList.remove('animate');
             void fill.offsetWidth;
             fill.classList.add('animate');
-            fill.addEventListener('animationend', timeoutAction, { once: true });
+            fill.addEventListener('animationend', onBarEnd, { once: true });
             // fill.addEventListener('animationend', () => alert("Foo"), {once: true});
             lastMatchTime = Date.now();
         };
