@@ -216,18 +216,23 @@ async function game(instructions: string, set: string[], cols: number, rows: num
                         // foundAtLeastOneMatch = true;  // Only need to set this once in the game, but no harm in setting it multiple times
                         let score = 0;  // No score if timeout
                         let msToFindMatch = Date.now() - lastMatchTime;
-                        if (msToFindMatch < timeoutMs) {
-                            const scoreQuartile = Math.floor((1 - msToFindMatch / timeoutMs) * 4);
-                            console.assert(scoreQuartile >= 0 && scoreQuartile <= 3, "Score quartile should be between 0 and 3, inclusive. Got " + scoreQuartile);
-                            score = [10, 20, 50, 100][scoreQuartile];
-                        }
+
+                        if (msToFindMatch < 1000) {
+                            score = 100;
+                        } else if (msToFindMatch < 3000) {
+                            score = 25;
+                        } else if (msToFindMatch < 5000) {
+                            score = 10;
+                        } else
+                            score = 0;
+
                         totalScore +=  score;
 
                         numMatches = 0;
                         // foundAtLeastOneMatch = true;
                         setsRemaining -= 1;
                         if (score > 0) {
-                            const buffer = score == 100 ? matchExcellentAudioBuffer : ( score == 50 ? matchGoodAudioBuffer : matchOkAudioBuffer);
+                            const buffer = score == 100 ? matchExcellentAudioBuffer : ( score == 25 ? matchGoodAudioBuffer : matchOkAudioBuffer);
                             (async () => { await playAudioBuffer(buffer) })();
                             // playAudioBuffer(buffer);
                         }
@@ -415,11 +420,11 @@ const set = emojiImgs;
     matchGoodAudioBuffer = await getAudioBufferFromFile('/audio/match_good.mp3');
     matchExcellentAudioBuffer = await getAudioBufferFromFile('/audio/match_excellent.mp3');
 
-    await game("Match all 50 pairs.", set, 4, 6, 50, 2,  10_000);
-    await game("Match sets of three.", set, 5, 8, 100, 3,  30_000);
+    await game("Match all 50 pairs.", set, 4, 6, 50, 2,  30_000);
+    await game("Match all 100 pairs.", set, 4, 6, 100, 2,  60_000);
+    await game("Match sets of three.", set, 5, 9, 100, 3,  60_000);
 
-    await game("Match sets of three!", set, 5, 9, 100, 3,  20_000);
-    await game("Match sets of three!", set, 6, 9, 100, 3,  30_000);
-    await game("No way you can finish this level.", set, 6, 9, 200, 3,  30_000);
+    await game("Match sets of three!", set, 6, 9, 100, 3,  60_000);
+    await game("Match sets of three!", set, 6, 10, 200, 3,  60_000);
 })();
 
