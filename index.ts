@@ -56,7 +56,7 @@ Object.defineProperty(Array.prototype, 'partition', {
         }
 })
 
-async function game(instructions: string, set: string[], rows: number, cols: number, numInitialSets: number, setSize : number, timeoutMs: number = 3000) {
+async function game(instructions: string, set: string[], cols: number, rows: number, numInitialSets: number, setSize : number, timeoutMs: number = 3000) {
 
     const scoreEl = document.querySelector('#score') as HTMLDivElement;
 
@@ -77,7 +77,7 @@ async function game(instructions: string, set: string[], rows: number, cols: num
         (document.querySelector('#instructions') as HTMLDivElement).innerHTML = instructions;
 
 
-        const grid_len = rows * cols
+        const grid_len = cols * rows
         // create a grid
         const grid: number[] = new Array<number>(grid_len).fill(0)
 
@@ -85,7 +85,7 @@ async function game(instructions: string, set: string[], rows: number, cols: num
 
         let matchingCells: HTMLDivElement[] = [];
         let hintCells: HTMLDivElement[] = []; // Cells that are currently being hinted at
-        const i2rc = (i: number): [number, number] => [ Math.floor(i / rows), i % rows]
+        const i2rc = (i: number): [number, number] => [ Math.floor(i / cols), i % cols]
 
         const getGridIndexWithFewestTiles = (): number => {
             const p: { i: number, h: number}[] = [];
@@ -344,7 +344,7 @@ async function game(instructions: string, set: string[], rows: number, cols: num
         deckEl.innerHTML = "";
         deckEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
         deckEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-
+        deckEl.style.aspectRatio = `${cols} / ${rows}`; // Set aspect ratio of deck
 
         deal();
 
@@ -371,9 +371,9 @@ async function playAudioBuffer(buffer: AudioBuffer) {
     src.buffer = buffer;
     src.connect(ctx.destination);
 
-        setTimeout(() => {
-            src.start();
-        }, 0);
+    setTimeout(() => {
+        src.start();
+    }, 0);
     return new Promise<void>((resolve) => {
         src.onended = () => {
             resolve();
@@ -390,27 +390,12 @@ const set = emojiImgs;
     matchOkAudioBuffer = await getAudioBufferFromFile('/audio/match_ok.mp3');
     matchGoodAudioBuffer = await getAudioBufferFromFile('/audio/match_good.mp3');
     matchExcellentAudioBuffer = await getAudioBufferFromFile('/audio/match_excellent.mp3');
-    //
-    // await game("TEST 1.", set, 2, 2, 4, 2,  15_000);
-    // await game("TEST 1.", set, 2, 2, 4, 2,  15_000);
-// 5 X 5 grid, 50 pairs, 5 seconds before hint
-    await game("Match all 50 pairs.", set, 5, 5, 50, 2,  5_000);
-// 7 X 7 grid, 100 sets of three, 30 seconds  before hint
-await game("Match sets of three.", set, 7, 7, 100, 3,  30_000);
 
+    await game("Match all 50 pairs.", set, 4, 6, 50, 2,  10_000);
+    await game("Match sets of three.", set, 5, 8, 100, 3,  30_000);
 
-// 5 X 5 grid, 100 pairs, 5 seconds  before new two new pairs of tiles are added
-// await game("Match pairs. Be quick, or new ones will appear!", set, 5, 5, 100, 2, 2, 5_000);
-
-// 7 X 7 grid, 49 sets of three, 20 seconds  before three new sets of tiles are  added
-    await game("Match sets of three!", set, 7, 7, 49, 3,  20_000);
-// 9 X 9 grid, 81 sets of three, 30 seconds  before hint
-    await game("Match sets of three!", set, 9, 9, 81, 3,  30_000);
-// 9 X 9 grid, 81 sets of three, 30 seconds  before  three new sets of tiles are added
-    await game("No way you can finish this level.", set, 9, 9, 81, 3,  30_000);
-// 9 X 9 grid, 99 sets of four, 30 seconds  before hint
-    await game("Match sets of four!", set, 11, 11, 99, 4,  30_000);
-// 10 X 10  grid, 99 sets of four, 10 seconds before new two new sets of four tiles are added
-    await game("Match sets of four!", set, 11, 11, 99, 4,  30_000);
+    await game("Match sets of three!", set, 5, 9, 100, 3,  20_000);
+    await game("Match sets of three!", set, 6, 9, 100, 3,  30_000);
+    await game("No way you can finish this level.", set, 6, 9, 200, 3,  30_000);
 })();
 
