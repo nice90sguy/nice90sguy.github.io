@@ -227,6 +227,9 @@ async function game(instructions, set, cols, rows, numInitialSets, setSize, time
         const timeoutAction = () => {
             // Find a set of tiles and animate them as a hint
             if (!userFoundMatchBeforeTimeout()) {
+                // HACK (shouldn't occur) - remove any tiles still with the "hint" class
+                document.querySelectorAll('.tile.hint')
+                    .forEach(el => el.classList.remove('hint'));
                 hintCells = findAVisibleSet(); // will always find one
                 // console.assert(s.length >= setSize, "There should always be a set of size " + setSize + " visible at this point")
                 for (const cell of hintCells)
