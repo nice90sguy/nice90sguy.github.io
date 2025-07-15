@@ -420,10 +420,8 @@ const set = emojiImgs;
     matchGoodAudioBuffer = await getAudioBufferFromFile('/audio/match_good.mp3');
     matchExcellentAudioBuffer = await getAudioBufferFromFile('/audio/match_excellent.mp3');
 
-    await game("Match all 50 pairs.", set, 4, 6, 50, 2,  30_000);
-    await game("Match all 100 pairs.", set, 4, 6, 100, 2,  60_000);
+    await game("Match all 50 pairs.", set, 7, 11, 100, 2,  30_000);
     await game("Match sets of three.", set, 5, 9, 100, 3,  60_000);
-
     await game("Match sets of three!", set, 6, 9, 100, 3,  60_000);
     await game("Match sets of three!", set, 6, 10, 200, 3,  60_000);
 })();
