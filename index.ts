@@ -56,96 +56,35 @@ Object.defineProperty(Array.prototype, 'partition', {
         }
 })
 
-const gameNum = 0;
+async function game(instructions: string, set: string[], rows: number, cols: number, numInitialSets: number, setSize : number, timeoutMs: number = 3000) {
 
+    const scoreEl = document.querySelector('#score') as HTMLDivElement;
 
-function histogram(data: number[], nBins: number, binWidth : number):  number[] {
+    // const timeoutActionType: "hint" | "add" | "remove" = setsToAddPerTimeout === 0 ? "hint" : setsToAddPerTimeout > 0 ? "add" : "remove"
 
+    // let foundAtLeastOneMatch = false; // We don't do the timeout action until the after the first successful match
+    let setsRemaining = 0;
 
-    const hist = new Array<number>(nBins).fill(0);    // @ts-ignore
-
-    for (const v of data) {
-        const binNum = Math.floor(v / binWidth)
-        if (binNum >= 0 && binNum < nBins)
-            ++hist[binNum];
-    }
-
-    return hist
-}
-
-function plotHistogram(containerEl: HTMLDivElement, data: number[]) {
-    const dataMax = Math.max(...data)
-
-    const nBins = 60
-    // make chart a whole multiple of 10 seconds.
-    // binWidth is a whole number of seconds in milliseconds
-    const binWidth = 1_000 * (Math.floor(dataMax / 60_000) + 1)
-    const hist = histogram(data, nBins, binWidth)
-    const maxHistValue = Math.max(...hist)
-    // Clear the container
-    containerEl.innerHTML = "";
-    // Create a reaction time bar chart, with .5s per column from 0s to max(30, histInfo.max)
-    const chart = document.createElement('div');
-    chart.className = 'chart';  // CSS class
-    chart.style.gridTemplateColumns = `repeat(${nBins}, 5px)`;
-    containerEl.appendChild(chart);
-
-    for (let i = 0; i < nBins; ++i) {
-        const bar = document.createElement('div');
-        bar.className = 'bar';
-        bar.style.height = `${hist[i] / maxHistValue * 100}px`;
-        bar.style.gridColumn = `${i + 1}`;
-        bar.style.gridRow = '1';
-        bar.style.transform = `translateY(${100 - hist[i] / maxHistValue * 100}px)`;
-
-        chart.appendChild(bar);
-        // if (i % 10 == 0) {
-        //     const xLabel = document.createElement('div');
-        //     xLabel.className = 'x-label';
-        //     xLabel.style.gridRow = '2';
-        //     xLabel.style.gridColumn = `${i + 1} / span 10`
-        //     xLabel.innerText = `${i}`;
-        //     chart.appendChild(xLabel);
-        // }
-
-
-
-    }
-    // Add x-axis labels
-    // const xLabels = document.createElement('div');
-    // xLabels.className = 'x-labels';
-    // containerEl.appendChild(xLabels);
-    // for (let i = 0; i < histInfo.hist.length; ++i) {
-    //     const label = document.createElement('div');
-    //     label.className = 'x-label';
-    //     label.style.width = `${barWidth}%`;
-    //     label.style.left = `${i * barWidth}%`;
-    //     label.innerText = `${(i * histInfo.max / histInfo.hist.length / 1000).toFixed(0)}`
-    //     xLabels.appendChild(label);
-    // }
-
-}
-async function game(instructions: string, set: string[], rows: number, cols: number, numInitialSets: number, setSize : number, setsToAddPerTimeout : number, timeoutMs: number = 3000) {
-
-    const timeoutActionType: "hint" | "add" | "remove" = setsToAddPerTimeout === 0 ? "hint" : setsToAddPerTimeout > 0 ? "add" : "remove"
-    let addMoreSets = true
-    let setsRemaining = 0
-    let timerHandle: number | undefined = undefined
     let lastMatchTime = 0;
 // Hack
     let lock: boolean = false;
     let numTilesDealt = 0;
-    const reactionTimes: number[] = []
+    let totalScore = 0;
 
-    return new Promise<void>((resolve, reject) => {
+
+
+    return new Promise<void>((resolve) => {
         (document.querySelector('#instructions') as HTMLDivElement).innerHTML = instructions;
-        addMoreSets = timeoutMs > 0;
+
+
         const grid_len = rows * cols
         // create a grid
         const grid: number[] = new Array<number>(grid_len).fill(0)
 
         let numMatches = 0;
+
         let matchingCells: HTMLDivElement[] = [];
+        let hintCells: HTMLDivElement[] = []; // Cells that are currently being hinted at
         const i2rc = (i: number): [number, number] => [ Math.floor(i / rows), i % rows]
 
         const getGridIndexWithFewestTiles = (): number => {
@@ -203,29 +142,35 @@ async function game(instructions: string, set: string[], rows: number, cols: num
                 : (a: HTMLDivElement, b: HTMLDivElement) => a.innerText === b.innerText
             // https://stackoverflow.com/questions/48419167/how-to-convert-one-emoji-character-to-unicode-codepoint-number-in-javascript
             // @ts-ignore
-            console.log([...v].map(e => e.codePointAt(0).toString(16)).join(`-`)) // gives correctly 1f469-200d-2695-fe0
+            // console.log([...v].map(e => e.codePointAt(0).toString(16)).join(`-`)) // gives correctly 1f469-200d-2695-fe0
             const tileEl = document.createElement('div');
             const [r, c] = i2rc(i)
 
             ++grid[i];
             const zIndex = 1000 + numTilesDealt++;
-            tileEl.classList.add('tile')
+            tileEl.className ='tile'
             tileEl.style.zIndex = `${zIndex}`
             tileEl.id = `${i}-${zIndex-1000}`;
             if (set === emojiImgs)
-                tileEl.innerHTML = `<img src="imgs/${v}.png">`
+                tileEl.innerHTML = `<img src="imgs/${v}.png" alt="${v}">`
             else
                 tileEl.innerText = v
             tileEl.style.gridRow = `${r + 1}`
             tileEl.style.gridColumn = `${c + 1}`
-            tileEl.style.animation = "fade-in .2s, grow .5s";
+            tileEl.classList.add('fade-in', 'grow')
+            tileEl.style.margin = '5px'
             deckEl.appendChild(tileEl);
 
+            tileEl.onanimationend = () => {
+                tileEl.className = 'tile'; // Remove all animation classes
+
+            }
             tileEl.ontransitionend = () => {
+
                 if (tileEl.classList.contains('rotateOut'))
                     tileEl.remove();
                 else
-                    tileEl.classList.remove("rotateBack");
+                    tileEl.className = 'tile'; // Remove all animation classes
 
             }
             tileEl.ontransitionstart = () => {
@@ -237,42 +182,48 @@ async function game(instructions: string, set: string[], rows: number, cols: num
                 if (lock)
                     return;
                 lock = true;
+
+                for (const cell of hintCells) {
+                    cell.classList.remove('hint');
+                }
+
                 if (matchingCells.length == 0) {
                     tileEl.classList.add("selected");
                     matchingCells.push(tileEl)
                 } else if (!matchingCells.includes(tileEl) && comparator(tileEl, matchingCells[0])) {
 
-
-                    matchingCells.push(tileEl)
+                    matchingCells.push(tileEl);
                     tileEl.classList.add("selected");
+                    // Check if we have a match
                     if (++numMatches == setSize-1) {
-                        if (lastMatchTime != 0) {
-                            const elapsed = Date.now() - lastMatchTime;
-
-                            reactionTimes.push(elapsed)
-                            if (reactionTimes.length > 0) {
-                                (document.querySelector('.mean-reaction-time') as HTMLDivElement).innerText = `Mean reaction time: ${(reactionTimes.reduce((a, b) => a + b) / reactionTimes.length / 1000).toFixed(1)}`
-                                plotHistogram(document.querySelector('.histogram') as HTMLDivElement, reactionTimes)
-                            }
+                        // We have a match
+                        // foundAtLeastOneMatch = true;  // Only need to set this once in the game, but no harm in setting it multiple times
+                        let score = 0;  // No score if timeout
+                        let msToFindMatch = Date.now() - lastMatchTime;
+                        if (msToFindMatch < timeoutMs) {
+                            const scoreQuartile = Math.floor((1 - msToFindMatch / timeoutMs) * 4);
+                            console.assert(scoreQuartile >= 0 && scoreQuartile <= 3, "Score quartile should be between 0 and 3, inclusive. Got " + scoreQuartile);
+                            score = [10, 20, 50, 100][scoreQuartile];
                         }
-                        lastMatchTime = Date.now();
-                        numMatches = 0;
-                        setsRemaining -= 1;
-                        audioEl.pause();
-                        audioEl.currentTime = 0
-                        audioEl.play();
+                        totalScore +=  score;
 
-                        setsRemainingEl.innerHTML = setsRemaining.toFixed(0)
+                        numMatches = 0;
+                        // foundAtLeastOneMatch = true;
+                        setsRemaining -= 1;
+                        if (score > 0) {
+                            const buffer = score == 100 ? matchExcellentAudioBuffer : ( score == 50 ? matchGoodAudioBuffer : matchOkAudioBuffer);
+                            (async () => { await playAudioBuffer(buffer) })();
+                            // playAudioBuffer(buffer);
+                        }
+
+                        scoreEl.innerHTML = `Score: ${score.toFixed(0)}  (${setsRemaining.toFixed(0)})`
 
                         for (const cell of matchingCells)
                             cell.classList.add('rotateOut')
                         matchingCells = []
-                        // Start timer if not already started
-                        if (timerHandle === undefined && addMoreSets)
-                            timerHandle = setTimeout(delayedDeal, timeoutMs);
+
+                        resetTimerBar();
                         if (setsRemaining === 0) {
-                            addMoreSets = false;
-                            clearTimeout(timerHandle);
                             // Game over
                             resolve();
                         }
@@ -286,19 +237,15 @@ async function game(instructions: string, set: string[], rows: number, cols: num
                     matchingCells = []
                     numMatches = 0;
                     tileEl.classList.add("rotateBack");
-
                 }
                 lock = false;
             }
             tileEl.addEventListener('mousedown', touched)
             tileEl.addEventListener('touchstart', touched)
 
-
-
             return;
 
         }
-
 
         const dealSet = (n: number):number[] => {
 
@@ -318,77 +265,72 @@ async function game(instructions: string, set: string[], rows: number, cols: num
                 makeTileAtIndex(gridIndex)
             ++emoji_idx;
             ++setsRemaining;
-            setsRemainingEl.innerHTML = setsRemaining.toFixed(0)
+            scoreEl.innerHTML = `Score: 0 (${setsRemaining.toFixed(0)})`
             return tileIndices
         }
-        const delayedDeal = () => {
-            // will re-trigger continuously until addMoreSets is false
-            // or a match has occurred less than timeoutMs ago
-            if (Date.now() - lastMatchTime > timeoutMs) {
 
-                if (timeoutActionType === "hint") {
-                    const s = findAVisibleSet()
-                    if (s.length && matchingCells.length === 0)
-                        for (const cell of s)
-                            cell.classList.add('rotateBack')
-                } else if (timeoutActionType === "add") {
-                    for (let np = 0; np < setsToAddPerTimeout; ++np)
-                        dealSet(setSize);
-                } else {
-                    // Remove a set
-                    const s = findAVisibleSet()
-                    for (const cell of s) {
-                        cell.classList.add('rotateOut')
+        const userFoundMatchBeforeTimeout = (): boolean => {
+            return Date.now() - lastMatchTime < timeoutMs
+        }
 
-                    }
-                    --setsRemaining;
-                    setsRemainingEl.innerHTML = setsRemaining.toFixed(0)
-                    if (setsRemaining === 0) {
-                        addMoreSets = false;
-                        clearTimeout(timerHandle);
-                        // Game over
-                        resolve();
-                    }
-
-                }
-
+        const timeoutAction = () => {
+            // Find a set of tiles and animate them as a hint
+            if (!userFoundMatchBeforeTimeout()) {
+                hintCells = findAVisibleSet() // will always find one
+                // console.assert(s.length >= setSize, "There should always be a set of size " + setSize + " visible at this point")
+                for (const cell of hintCells)
+                    // console.log(cell.classList)
+                    cell.classList.add('hint')
             }
-            if (addMoreSets)
-                timerHandle = setTimeout(delayedDeal, timeoutMs)
-
         }
         const deal = () => {
-            // Make the background
-            // for (let i = 0; i < grid_len; ++i)
-            //     makeTileAtIndex(i, true);
+            setTimerBarTransitionTime(864_000_000); // 1 day, so it doesn't animate
+            resetTimerBar();
             let setNum = 0;
             const to = setInterval(() => {
                 if (setNum++ < numInitialSets)
                     dealSet(setSize);
-                else
-                    clearInterval(to)
+                else {
+                    clearInterval(to);
+
+
+                    setTimerBarTransitionTime(timeoutMs);
+                    resetTimerBar();
+                }
             }, 50)
+
             // for (let setNum = 0; set < numInitialSets; ++set)
             //     dealSet();
 
         }
+        const resetTimerBar = () => {
+            if (timeoutMs <= 0)
+                return;
+            const fill = document.querySelector('.timer-fill') as HTMLElement;
+            if (!fill) return;
+            fill.style.animation = '';
+            void fill.offsetWidth;
+            fill.classList.remove('animate');
+            void fill.offsetWidth;
+            fill.classList.add('animate');
 
+            fill.addEventListener('animationend', timeoutAction, {once: true});
+            // fill.addEventListener('animationend', () => alert("Foo"), {once: true});
+            lastMatchTime = Date.now();
 
+        };
 
+        const setTimerBarTransitionTime = (milliSeconds: number) => {
+            document.documentElement.style.setProperty('--TRANSITION_TIME', `${milliSeconds / 1000}s`);
+        }
         // @ts-ignore
         // const emojis = set.slice(0,100).shuffle()
         const emojis = set.shuffle()
         let emoji_idx = 0;
 
-
-
-        const layers : string[][] = []
-        // let elToMatch: HTMLDivElement | undefined = undefined
-
-        const setsRemainingEl= document.querySelector('#tiles-remaining') as HTMLDivElement;
         const deckEl = document.querySelector('.deck') as HTMLDivElement;
-        const audioEl = document.querySelector('audio') as HTMLAudioElement;
-
+        // const audioElGood = document.querySelector('#audio_match_good') as HTMLAudioElement;
+        // const audioElOk = document.querySelector('#audio_match_ok') as HTMLAudioElement;
         // Make deck
 
         deckEl.innerHTML = "";
@@ -396,33 +338,71 @@ async function game(instructions: string, set: string[], rows: number, cols: num
         deckEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
 
 
-
-
         deal();
 
+
     });
-
-
-
 }
+
+const ctx = new AudioContext( {latencyHint: 'playback' });
+
+let matchOkAudioBuffer: AudioBuffer;
+let matchGoodAudioBuffer: AudioBuffer;
+let matchExcellentAudioBuffer: AudioBuffer;
+async function getAudioBufferFromFile(fileName: string) {
+    const resp = await fetch(fileName);
+    const array = await resp.arrayBuffer();
+    return await ctx.decodeAudioData(array);
+}
+
+async function playAudioBuffer(buffer: AudioBuffer) {
+    if (ctx.state !== "running") {
+        await ctx.resume(); // Ensures context is live
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(ctx.destination);
+
+        setTimeout(() => {
+            src.start();
+        }, 0);
+    return new Promise<void>((resolve) => {
+        src.onended = () => {
+            resolve();
+        };
+    });
+}
+
+// Call init() on startup, then playChimeBuffer() whenever you need the chime
 // const set = allEmojis
 const set = emojiImgs;
 
 (async () => {
+// Init audio
+    matchOkAudioBuffer = await getAudioBufferFromFile('/audio/match_ok.mp3');
+    matchGoodAudioBuffer = await getAudioBufferFromFile('/audio/match_good.mp3');
+    matchExcellentAudioBuffer = await getAudioBufferFromFile('/audio/match_excellent.mp3');
+
+    await game("TEST 1.", set, 2, 2, 4, 2,  15_000);
+    await game("TEST 1.", set, 2, 2, 4, 2,  15_000);
 // 5 X 5 grid, 50 pairs, 5 seconds before hint
-    await game("Match all 50 pairs.", set, 5, 5, 50, 2, 0, 5_000);
-// 5 X 5 grid, 100 pairs, 5 seconds  before new two new pairs of tiles are added
-    await game("Match pairs. Be quick, or new ones will appear!", set, 5, 5, 100, 2, 2, 5_000);
+    await game("Match all 50 pairs.", set, 5, 5, 50, 2,  5_000);
 // 7 X 7 grid, 100 sets of three, 30 seconds  before hint
-    await game("Match sets of three.", set, 7, 7, 100, 3, 0, 30_000);
+await game("Match sets of three.", set, 7, 7, 100, 3,  30_000);
+
+
+// 5 X 5 grid, 100 pairs, 5 seconds  before new two new pairs of tiles are added
+// await game("Match pairs. Be quick, or new ones will appear!", set, 5, 5, 100, 2, 2, 5_000);
+
 // 7 X 7 grid, 49 sets of three, 20 seconds  before three new sets of tiles are  added
-    await game("Match sets of three. Don't take too long finding them!", set, 7, 7, 49, 3, 3, 20_000);
+    await game("Match sets of three!", set, 7, 7, 49, 3,  20_000);
 // 9 X 9 grid, 81 sets of three, 30 seconds  before hint
-    await game("Match sets of three!", set, 9, 9, 81, 3, 0, 30_000);
+    await game("Match sets of three!", set, 9, 9, 81, 3,  30_000);
 // 9 X 9 grid, 81 sets of three, 30 seconds  before  three new sets of tiles are added
-    await game("No way you can finish this level.", set, 9, 9, 81, 3, 3, 30_000);
+    await game("No way you can finish this level.", set, 9, 9, 81, 3,  30_000);
+// 9 X 9 grid, 99 sets of four, 30 seconds  before hint
+    await game("Match sets of four!", set, 11, 11, 99, 4,  30_000);
+// 10 X 10  grid, 99 sets of four, 10 seconds before new two new sets of four tiles are added
+    await game("Match sets of four!", set, 11, 11, 99, 4,  30_000);
 })();
-
-
-
 

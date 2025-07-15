@@ -6,12 +6,21 @@
     <style>
         :root {
             /*  Globally used vars */
-            --backgound-edge-color: #5b6d7a;
+            --backgound-edge-color: #e9faff;
             --background-middle-color: #ffffff;
-            --background-color: #ccbdae;
-
-
+            --game-background-color: #ccbdae;
+            --tile-background-color: #ffffff;
+            --TRANSITION_TIME: 86400s;
         }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--game-background-color);
+        }
+
         @keyframes pulse {
             0% { opacity: 1; }
             16% { opacity: .5; }
@@ -30,7 +39,7 @@
         }
         div {
             -moz-user-select: none;
-            -khtml-user-select: none;
+            -html-user-select: none;
             -webkit-user-select: none;
 
             /*
@@ -41,98 +50,115 @@
             user-select: none;
         }
 
-        div.tile img  {
-            filter: drop-shadow(2px 2px 4px #424242);
-            width: 94%;
-            object-fit: contain;
-        }
-        div#outer {
+           div#outer {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
+            height: 100%;
+            width: 100%;
 
         }
         div#controls {
-            font-family: moody-adolescent-regular;
+            font-family: moody-adolescent-regular,sans-serif;
             justify-content: normal;
-            display: block;
-            grid-template-columns: 50px 1fr 50px;
+            display: grid;
+            grid-template-rows: 20px 1fr 1fr;
 
-            margin-top: 50px;
+            margin-top: 0;
             padding-top: 10px;
             width: 100%;
 
             height: 150px;
             grid-template-areas:
-                "tiles-remaining hist opts";
+                "timer-bar"
+                "score"
+                "instructions";
 
-            font-size: 48pt;
+            font-size: 36px;
         }
         @font-face {
             font-family: "moody-adolescent-regular";
             src: url("fonts/MoodyadolescentRegular-jE00v.otf") format("opentype");
         }
-        .deck {
-            width: 100vmin;
-            height: 100vmin;
-
-            aspect-ratio: 1/1;
-            position: relative;
-            background-color: var(--background-color);
+        .deck_old {
+            flex-grow: 1;
             max-width: 100vmin;
-            max-height: 100vmin;
+            max-height: calc(100vh - 150px);
+            position: relative;
+            background-color: var(--game-background-color);
+
             display: grid;
             aspect-ratio: 1 / 1;
             container-type: inline-size;
         }
+
+        .deck {
+            /* 1) Constrain width to available viewport minus controls */
+            width: min(100%, calc(100vh - 150px));      /* Use the smaller of full width or height-minus-controls :contentReference[oaicite:0]{index=0} */
+
+            /* 2) Allow height to be auto-calculated from width */
+            height: auto;                               /* one dimension must be 'auto' for aspect-ratio to apply  */
+
+            /* 3) Enforce a 1:1 box */
+            aspect-ratio: 1 / 1;                        /* locks height = width :contentReference[oaicite:2]{index=2} */
+
+            /* 4) Clear any flex-based height forcing */
+            flex: 0 0 auto;                             /* neutralize flex-grow/shrink so it won’t override our size  */
+            max-width: none;                            /* clear any previous max-width */
+            max-height: none;                           /* clear any previous max-height */
+
+            /* 5) Your existing grid & styling */
+            display: grid;
+            position: relative;
+            background-color: var(--game-background-color);
+            /* keep container-type if you rely on container queries elsewhere */
+            container-type: inline-size;
+        }
+
+
         div#container {
 
         }
-        div#tiles-remaining {
-            grid-area: tiles-remaining;
 
+        div#timer-bar {
+            grid-area: timer-bar;
         }
-        div#hist {
-            display: none;
-            grid-area: hist;
-
+        .timer-fill {
+            width: 100%;
+            height: 100%;
+            background-color: #2196F3; /* Blue color */
         }
-
-        div.chart {
-            display: grid;
-            grid-template-columns: repeat(60, 5px);
-            grid-auto-columns: minmax(5px, 5px);
-            grid-template-rows: 1fr 30px;
-
+        .timer-fill.animate {
+            animation: drain var(--TRANSITION_TIME) linear forwards;
         }
-
-        div.bar {
-
-            background-color: #5b5112;
-        }
-        div.x-label {
-            display: inline-block;
-            width: 20px;
-            margin: 2px;
-            font-size: 10px;
+        @keyframes drain {
+            from {
+                width: 100%;
+            }
+            to {
+                width: 0%;
+            }
         }
 
-        div.histogram {
-            background-color: var(--background-color);
-            grid-area: hist;
-            height: 100px;
+        div#score {
+            grid-area: score;
+
+        }
+
+        div#instructions {
+            grid-area: instructions;
             font-family: monospace;
         }
-        div#opts {
-            grid-area: opts;
-            font-family: monospace;
-        }
+
         div.tile {
             text-align: center;
-            text-shadow: 2px 2px 4px #424242;
-            background-color: var(--background-color);
+            /*text-shadow: 2px 2px 4px #424242;*/
+            background-color: var(--tile-background-color);
+            Border: 1px solid var(--backgound-edge-color);
+            border-radius: 10px;
+            filter: drop-shadow(2px 2px 2px #424242);
 
         }
 
@@ -141,9 +167,11 @@
             cursor: grabbing;
 
         }
-        div.rotateOut {
-            transform: rotateY(90deg);
-            transition-duration: 0.1s;
+
+        div.tile img  {
+
+            width: 94%;
+            object-fit: contain;
         }
 
         div.rotateOut {
@@ -157,28 +185,40 @@
             transform: rotateY(-360deg);
             transition-duration: 0.6s;
         }
-        div.fadeIn {
 
+
+        @keyframes hintCycle {
+
+            0%   { transform: rotateY(0deg); }
+            12% { transform: rotateY(-360deg); }
+            100% { transform: rotateY(-360deg); }
+        }
+
+        div.hint {
+            animation: hintCycle 5s linear infinite !important;
+        }
+
+        div.fadeIn {
+            animation: fade-in 0.2s ease forwards;
+        }
+
+        div.grow {
+            animation: grow 0.5s ease forwards;
         }
     </style>
 </head>
 <body>
 
-
-<audio src="notify.wav"></audio>
 <div id="outer">
     <div class="deck"></div>
     <div id="controls">
 
-        <div id="hist">
-            <div class="mean-reaction-time">(mean reaction time)</div>
-            <div class="histogram">(HISTOGRAM)</div>
-
+        <div id="timer-bar">
+            <div class="timer-fill"></div>
         </div>
-
-        <div id="tiles-remaining"></div>
+        <div id="score"></div>
         <div id="instructions"></div>
-<!--        <div>😀<img src="imgs/1f600.png" height=64"></div>-->
+
     </div>
 
 
