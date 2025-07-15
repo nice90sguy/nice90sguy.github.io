@@ -382,9 +382,9 @@ const set = emojiImgs;
     matchOkAudioBuffer = await getAudioBufferFromFile('/audio/match_ok.mp3');
     matchGoodAudioBuffer = await getAudioBufferFromFile('/audio/match_good.mp3');
     matchExcellentAudioBuffer = await getAudioBufferFromFile('/audio/match_excellent.mp3');
-
-    await game("TEST 1.", set, 2, 2, 4, 2,  15_000);
-    await game("TEST 1.", set, 2, 2, 4, 2,  15_000);
+    //
+    // await game("TEST 1.", set, 2, 2, 4, 2,  15_000);
+    // await game("TEST 1.", set, 2, 2, 4, 2,  15_000);
 // 5 X 5 grid, 50 pairs, 5 seconds before hint
     await game("Match all 50 pairs.", set, 5, 5, 50, 2,  5_000);
 // 7 X 7 grid, 100 sets of three, 30 seconds  before hint
