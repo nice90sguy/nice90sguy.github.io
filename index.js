@@ -162,7 +162,7 @@ async function game(instructions, set, cols, rows, numInitialSets, setSize, time
                             (async () => { await playAudioBuffer(buffer); })();
                             // playAudioBuffer(buffer);
                         }
-                        scoreEl.innerHTML = `Score: ${score.toFixed(0)}  (${setsRemaining.toFixed(0)})`;
+                        scoreEl.innerHTML = `Score: ${totalScore.toFixed(0)}  (${setsRemaining.toFixed(0)})`;
                         for (const cell of matchingCells)
                             cell.classList.add('rotateOut');
                         matchingCells = [];

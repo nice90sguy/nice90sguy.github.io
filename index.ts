@@ -216,7 +216,7 @@ async function game(instructions: string, set: string[], cols: number, rows: num
                             // playAudioBuffer(buffer);
                         }
 
-                        scoreEl.innerHTML = `Score: ${score.toFixed(0)}  (${setsRemaining.toFixed(0)})`
+                        scoreEl.innerHTML = `Score: ${totalScore.toFixed(0)}  (${setsRemaining.toFixed(0)})`
 
                         for (const cell of matchingCells)
                             cell.classList.add('rotateOut')
