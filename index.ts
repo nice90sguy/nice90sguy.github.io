@@ -121,7 +121,7 @@ async function game(instructions: string, set: string[], cols: number, rows: num
 
         const findAVisibleSet = (): HTMLDivElement[] => {
             const tiles = topTiles()
-            const visibleTiles = tiles.filter(t => t !== undefined && !t.classList.contains('rotateOut'))
+            const visibleTiles = tiles.filter(t => t !== undefined && !t.classList.contains('dummy') && !t.classList.contains('rotateOut'))
             // @ts-ignore
             const partitions = visibleTiles.partition((t: HTMLDivElement) => set !== emojiImgs ? t.innerText : (<HTMLImageElement>t.firstElementChild).src)
             for (const key in partitions)
@@ -130,18 +130,13 @@ async function game(instructions: string, set: string[], cols: number, rows: num
             return []
         }
         const makeDummyTileAtIndex = (i: number): HTMLDivElement => {
-            const v: string = "😀"; // Dummy tile, just for testing
             const dummyTileEl = document.createElement('div');
             const [r, c] = i2rc(i)
-
-
-            dummyTileEl.className ='dummy-tile'
+            dummyTileEl.className ='tile dummy'
             dummyTileEl.style.zIndex = -1000 + '';
-            dummyTileEl.id = `${i}-dummy`;
-            dummyTileEl.innerText = v;
+            dummyTileEl.id = `${i}-${0}`;
             dummyTileEl.style.gridRow = `${r + 1}`
             dummyTileEl.style.gridColumn = `${c + 1}`
-            dummyTileEl.style.margin = '5px'
             deckEl.appendChild(dummyTileEl);
             return dummyTileEl;
         }
@@ -174,7 +169,7 @@ async function game(instructions: string, set: string[], cols: number, rows: num
             tileEl.style.gridRow = `${r + 1}`
             tileEl.style.gridColumn = `${c + 1}`
             tileEl.classList.add('fade-in', 'grow')
-            tileEl.style.margin = '5px'
+
             deckEl.appendChild(tileEl);
 
             tileEl.onanimationend = () => {
@@ -368,8 +363,8 @@ async function game(instructions: string, set: string[], cols: number, rows: num
         // Make deck
 
         deckEl.innerHTML = "";
-        deckEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-        deckEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+        deckEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+        deckEl.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
         deckEl.style.aspectRatio = `${cols} / ${rows}`; // Set aspect ratio of deck
         // fill with dummy tiles
         for (let i = 0; i < grid_len; ++i) {
@@ -420,9 +415,12 @@ const set = emojiImgs;
     matchGoodAudioBuffer = await getAudioBufferFromFile('/audio/match_good.mp3');
     matchExcellentAudioBuffer = await getAudioBufferFromFile('/audio/match_excellent.mp3');
 
-    await game("Match all 50 pairs.", set, 7, 11, 100, 2,  30_000);
-    await game("Match sets of three.", set, 5, 9, 100, 3,  60_000);
-    await game("Match sets of three!", set, 6, 9, 100, 3,  60_000);
-    await game("Match sets of three!", set, 6, 10, 200, 3,  60_000);
+    await game("Match  pairs.", set, 4, 6, 24, 2,  30_000);
+    await game("Match  pairs!", set, 5, 8, 40, 2,  30_000);
+    await game("Match  sets of three!", set, 5, 8, 80, 3,  30_000);
+    await game("Match pairs!", set, 7, 10, 100, 2,  60_000);
+    await game("Match sets of three!", set, 7, 10, 100, 3,  60_000);
+    await game("Match sets of three!", set, 7, 11, 100, 3,  60_000);
+    await game("Match sets of three!", set, 8, 12, 200, 3,  60_000);
 })();
 
